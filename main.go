@@ -7,12 +7,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
+	
+	
+
 )
 
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Println("Usage: go run . <input_file> <output_file>")
+		fmt.Println("Usage: go run . sample.txt result.txt")
 		return
 	}
 
@@ -33,7 +35,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Modifications complete. Output written to", outputFile)
+	fmt.Println("ModifiedText written to", outputFile)
 }
 
 // Function to read text from a file
@@ -61,7 +63,7 @@ func writeToFile(filename, text string) error {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(text)
+	_, err = file.WriteString(text )
 	if err != nil {
 		return err
 	}
@@ -78,13 +80,12 @@ func modifyText(text string) string {
 	text = replaceBin(text)
 
 	// Rule 3: Uppercase
-	text = replaceCase(text, "up")
+	text = convertToUpper(text)
 
 	// Rule 4: Lowercase
-	text = replaceCase(text, "low")
-
-	// Rule 5: Capitalize
-	text = replaceCase(text, "cap")
+	text = convertToLower(text)
+    //Rule 5:capitalised
+	text = capitalised(text)
 
 	// Rule 6: Handle punctuations
 	text = fixPunctuation(text)
@@ -93,14 +94,13 @@ func modifyText(text string) string {
 	text = fixArticles(text)
 
 	// Rule 8: Fix single quotes
-	text = fixSingleQuotes(text)
-
-	text = fixDoubleQuotes(text)
+	
+    text = fixSingleQuotes(text)
 
 	return text
 }
 
-// Function to replace hexadecimal numbers
+// replaceHex Function to replace hexadecimal numbers
 func replaceHex(text string) string {
 	re := regexp.MustCompile(`(\b[0-9A-Fa-f]+) \(hex\)`)
 	matches := re.FindAllStringSubmatch(text, -1)
@@ -115,7 +115,69 @@ func replaceHex(text string) string {
 }
 
 // Function to replace binary numbers
+func replaceBin(text string) string {
+	re := regexp.MustCompile(`(\b[01]+) \(bin\)`)
+	matches := re.FindAllStringSubmatch(text, -1)
+	for _, match := range matches {
+		word := match[1]
+		binValue, err := strconv.ParseInt(word, 2, 64)
+		if err == nil {
+			text = strings.Replace(text, match[0], fmt.Sprintf("%d", binValue), 1)
+		}
+	}
+	return text
+}
 
+func capitalised(text string) string {
+	words := strings.Fields(text)
+	for i := 0; i < len(words); i++ {
+		if strings.Contains(words[i], "(cap)") {
+			words[i-1] = strings.Title(words[i-1])
+			words = append(words[:i], words[i+1:]...)
+		}else if strings.Contains(words[i], "(cap,") {
+			caps, _ := strconv.Atoi(words[i+1][:len(words[i+1])-1])
+			for j := i - caps; j < i; j++ {
+				words[j] = strings.Title(words[j])
+				words = append(words[:i], words[i+1:]...)
+			}
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+func convertToUpper(text string) string {
+	words := strings.Fields(text)
+	for i := 0; i < len(words); i++ {
+		if strings.Contains(words[i], "(up)") {
+			words[i-1] = strings.ToUpper(words[i-1])
+			words = append(words[:i], words[i+1:]...)
+		}else if strings.Contains(words[i], "(up,") {
+			caps, _ := strconv.Atoi(words[i+1][:len(words[i+1])-1])
+			for j := i - caps; j < i; j++ {
+				words[j] = strings.ToUpper(words[j])
+				words = append(words[:i], words[i+1:]...)
+			}
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+func convertToLower(text string) string {
+	words := strings.Fields(text)
+	for i := 0; i < len(words); i++ {
+		if strings.Contains(words[i], "(low)") {
+			words[i-1] = strings.ToLower(words[i-1])
+			words = append(words[:i], words[i+1:]...)
+		}else if strings.Contains(words[i], "(low,") {
+			caps, _ := strconv.Atoi(words[i+1][:len(words[i+1])-1])
+			for j := i - caps; j <= i; j++ {
+				words[j] = strings.ToLower(words[j])
+			}
+			words = append(words[:i], words[i+2:]...)
+		}
+	}
+	return strings.Join(words, " ")
+}
 
 func fixPunctuation(text string) string  {
     punctPattern := regexp.MustCompile(`(\s*)([.,!?:;]{1,3})(\s*)`)
@@ -127,15 +189,7 @@ func fixPunctuation(text string) string  {
     return text
 }
   
-// Function to fix single quotes
-func fixSingleQuotes(text string) string {
-	re := regexp.MustCompile(`'\s*(\w+)\s*'`)
-	text = re.ReplaceAllString(text, "'$1'")
-	return text
-}
-
-
-func fixDoubleQuotes (text string) string {
+func fixSingleQuotes (text string) string {
 	re := regexp.MustCompile(`'([^']*)'`)
 	text = re.ReplaceAllStringFunc(text, func(s string) string {
 		words := strings.Fields(s)
@@ -156,16 +210,15 @@ func fixDoubleQuotes (text string) string {
 func fixArticles(text string) string {
 	words := strings.Fields(text)
 	for i := 0; i < len(words)-1; i++ {
-		if strings.ToLower(words[i]) == "a" && (strings.HasPrefix("aeiou", string(words[i+1][0])) || strings.HasPrefix("h", string(words[i+1][0]))) {
-			if words[i] == "a" {
-				words[i] = "an"
-			} else if words[i] == "A" {
-				words[i] = "An"
-			}
+		nextWord := words[i+1]
+		firstChar := nextWord[0]
+		if words[i] == "a" && (firstChar == 'a' || firstChar == 'e' || firstChar == 'i' || firstChar == 'o' || firstChar == 'u' || firstChar == 'h') {
+			words[i] = "an"
+		} else if words[i] == "A" && (firstChar == 'a' || firstChar == 'e' || firstChar == 'i' || firstChar == 'o' || firstChar == 'u' || firstChar == 'h') {
+			words[i] = "An"
 		}
 	}
 	return strings.Join(words, " ")
-}	
-
+}
 
 
