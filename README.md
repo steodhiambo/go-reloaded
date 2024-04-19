@@ -8,10 +8,11 @@ This project is a simple text completion/editing/auto-correction tool written in
 
 To use the tool, run the following command:
 
-go run . input.txt output.txt
+go run . sample.txt result.txt
 
-Where input.txt is the name of the file containing the text to be modified, and output.txt is the name of the file the modified text should be placed in.
-Modifications
+Where sample.txt is the name of the file containing the text to be modified, and result.txt is the name of the file the modified text should be placed in.
+
+## Modifications
 
 The tool performs the following modifications on the input text:
 
